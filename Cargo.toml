@@ -2,6 +2,23 @@
 name = "vidify"
 version = "3.0.0-alpha"
 authors = ["Mario Ortiz Manero <marioortizmanero@gmail.com>"]
+license = "GPL-3.0+"
+description = "Watch music videos in real-time for the songs playing on your device"
+repository = "https://github.com/vidify/vidify"
+keywords = ["music videos", "player", "real-time", "lyrics", "videos", "spotify", "linux", "bsd", "windows", "macos"]
+categories = ["multimedia", "multimedia::video", "multimedia::audio"]
+readme = "README.md"
 edition = "2018"
 
 [dependencies]
+pico-args = "0.3.3"
+rust-ini = "0.15.3"
+dirs = "3.0.0"
+
+gtk = "0.8.1"
+
+libmpv = "1.0.1"
+rspotify = "0.10.0"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+dbus = "0.8.4"
