@@ -20,6 +20,17 @@ pub struct APIData {
     event_loop_interval: String,
 }
 
+// TODO: Relevant book section:
+// https://doc.rust-lang.org/book/ch17-03-oo-design-patterns.html
+// With this design pattern, the API can make sure the rest of the methods
+// can't be used before `connect` is called.
+//
+// TODO: could `connect` and `new` be merged into `new`?
+//
+// TODO: Relevant book section:
+// https://doc.rust-lang.org/book/ch17-02-trait-objects.html#object-safety-is-required-for-trait-objects
+// Using `new` breaks object-safe rules unless `Sized` is used, so it's
+// not considered a good practise.
 pub trait APIBase {
     // Creating the object and initializing it
     fn new() -> Self

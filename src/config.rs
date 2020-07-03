@@ -27,9 +27,9 @@ pub struct Config {
 }
 
 impl Config {
-    const DEFAULT_SECTION: &'static str = "Defaults";
+    pub fn new() -> Result<Config, Box<dyn std::error::Error>> {
+        let mut args = pico_args::Arguments::from_env();
 
-    pub fn new() -> Config {
         // Reading the file from the user's config directory.
         let mut config_file = dirs::config_dir()
             .expect("Could not find user config directory");
@@ -56,9 +56,25 @@ impl Config {
             }
         }
 
+        // Should be automatically generated
+        if args.contains(["-h", "--help"]) {
+            println!("help goes here");
+        }
+
+        if args.contains(["-v", "--version"]) {
+            println!("version goes here");
+        }
+
+        let debug: bool = args
+            .opt_value_from_str("--debug")?
+            .unwrap_or(
+                ini.get_from_or(Some("Defaults"), "debug", "true")
+                .parse::<bool>()
+                .expect("Could not parse the value of 'debug' in the \
+                        config file.")
+            );
+
         Config {
-            debug: ini.get_from(super::DEFAULT_SECTION, "debug"),
-            // ...
         }
     }
 }
