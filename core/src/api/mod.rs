@@ -35,7 +35,8 @@ pub struct APIData {
 pub trait APIBase {
     // Creating the object and initializing it
     fn new() -> Self
-        where Self: Sized;
+    where
+        Self: Sized;
     fn connect(&mut self);
 
     // Obtaining data about the API
@@ -55,6 +56,6 @@ pub fn init_api(api: API) -> Box<dyn APIBase> {
         API::Windows => Box::new(windows::Windows::new()),
         #[cfg(target_os = "macos")]
         API::MacOS => Box::new(macos::MacOS::new()),
-        API::SpotifyWeb => Box::new(spotifyweb::SpotifyWeb::new())
+        API::SpotifyWeb => Box::new(spotifyweb::SpotifyWeb::new()),
     }
 }

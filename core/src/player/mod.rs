@@ -1,5 +1,5 @@
-pub mod mpv;
 pub mod external;
+pub mod mpv;
 
 #[derive(Debug, Display, EnumString)]
 pub enum Player {
@@ -14,7 +14,8 @@ pub struct PlayerData {
 
 pub trait PlayerBase {
     fn new() -> Self
-        where Self: Sized;
+    where
+        Self: Sized;
 
     fn pause(&mut self);
     fn is_paused(&self) -> bool;

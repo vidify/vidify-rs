@@ -1,23 +1,27 @@
-use crate::player::Player;
 use crate::api::API;
+use crate::player::Player;
 
-use clap::{App, Arg, ArgMatches, crate_authors, crate_version};
-use ini::Ini;
+use clap::{crate_authors, crate_version, App, Arg, ArgMatches};
 use dirs;
+use ini::Ini;
 use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 macro_rules! opt {
     ($args: tt, $ini: tt, $type: ty, $name: expr, $section: expr) => {
         // The arguments have more priority than config file. Once one
         // of them is obtained, it's parsed.
-        $args.value_of($name).or_else(|| {
-            $ini.get_from(Some($section), $name)
-        }).and_then(|x| {
-            let err_msg = concat!("Could not parse the value of '", $name,
-                                  "' in the config file.");
-            Some(x.parse::<$type>().expect(err_msg))
-        })
+        $args
+            .value_of($name)
+            .or_else(|| $ini.get_from(Some($section), $name))
+            .and_then(|x| {
+                let err_msg = concat!(
+                    "Could not parse the value of '",
+                    $name,
+                    "' in the config file."
+                );
+                Some(x.parse::<$type>().expect(err_msg))
+            })
     };
 }
 
@@ -34,7 +38,6 @@ macro_rules! arg {
             .help($help)
     };
 }
-
 
 // #[derive(Debug, Conf)]
 #[derive(Debug)]
@@ -59,28 +62,41 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Result<Config, Box<dyn std::error::Error>> {
-        let args = Config::parse_args();
-        let file = Config::parse_config_file(args.value_of("config_file"));
-
+        let a = Config::parse_args();
+        let f = Config::parse_config_file(a.value_of("config_file"));
         Ok(Config {
-            debug: opt!(args, file, bool, "debug", "Defaults").unwrap_or(true),
-            lyrics: opt!(args, file, bool, "no_lyrics", "Defaults").and_then(|x| Some(!x)).unwrap_or(true),
-            fullscreen: opt!(args, file, bool, "fullscreen", "Defaults").unwrap_or(false),
-            stay_on_top: opt!(args, file, bool, "stay_on_top", "Defaults").unwrap_or(false),
-            api: opt!(args, file, API, "api", "Defaults"),
-            player: opt!(args, file, Player, "player", "Defaults"),
-            audiosync: opt!(args, file, bool, "audiosync", "Defaults").unwrap_or(true),
-            audiosync_calibration: opt!(args, file, i32, "audiosync_calibration", "Defaults").unwrap_or(0),
-            mpv_flags: opt!(args, file, String, "mpv_flags", "Defaults").unwrap_or(String::from("")),
-            client_id: opt!(args, file, String, "client_id", "SpotifyWeb"),
-            client_secret: opt!(args, file, String, "client_secret", "SpotifyWeb"),
-            redirect_uri: opt!(args, file, String, "redirect_uri", "SpotifyWeb").unwrap_or(String::from("")),
-            refresh_token: opt!(args, file, String, "refresh_token", "SpotifyWeb"),
+            debug: opt!(a, f, bool, "debug", "Defaults").unwrap_or(true),
+            lyrics: opt!(a, f, bool, "no_lyrics", "Defaults")
+                .and_then(|x| Some(!x))
+                .unwrap_or(true),
+            fullscreen: opt!(a, f, bool, "fullscreen", "Defaults")
+                .unwrap_or(false),
+            stay_on_top: opt!(a, f, bool, "stay_on_top", "Defaults")
+                .unwrap_or(false),
+            api: opt!(a, f, API, "api", "Defaults"),
+            player: opt!(a, f, Player, "player", "Defaults"),
+            audiosync: opt!(a, f, bool, "audiosync", "Defaults")
+                .unwrap_or(true),
+            audiosync_calibration: opt!(
+                a,
+                f,
+                i32,
+                "audiosync_calibration",
+                "Defaults"
+            )
+            .unwrap_or(0),
+            mpv_flags: opt!(a, f, String, "mpv_flags", "Defaults")
+                .unwrap_or(String::from("")),
+            client_id: opt!(a, f, String, "client_id", "SpotifyWeb"),
+            client_secret: opt!(a, f, String, "client_secret", "SpotifyWeb"),
+            redirect_uri: opt!(a, f, String, "redirect_uri", "SpotifyWeb")
+                .unwrap_or(String::from("")),
+            refresh_token: opt!(a, f, String, "refresh_token", "SpotifyWeb"),
         })
     }
 
     fn parse_config_file(path_str: Option<&str>) -> Ini {
-        // The path is first obtained as a `String` for output and 
+        // The path is first obtained as a `String` for output and
         let path = match path_str {
             Some(path) => PathBuf::from(path),
             None => {
@@ -94,8 +110,12 @@ impl Config {
         // Checking that the config file exists, and creating it otherwise.
         if !path.exists() {
             File::create(&path).expect("Could not create config file");
-            println!("Created config file at {}", path.to_str()
-                .expect("Invalid UTF-8 characters found in the config path"));
+            println!(
+                "Created config file at {}",
+                path.to_str().expect(
+                    "Invalid UTF-8 characters found in the config path"
+                )
+            );
         }
         Ini::load_from_file(path).unwrap()
     }
@@ -113,21 +133,44 @@ impl Config {
             arg!("no_lyrics", "n", "do not print lyrics."),
             arg!("fullscreen", "f", "open the app in fullscreen mode."),
             arg!("stay_on_top", "the window will stay on top of all apps."),
-            arg!("api", "a", "the source music player used. Read the \
-                 installation guide for a list with the available APIs."),
-            arg!("player", "p", "the output video player. Read the \
-                 installation guide for a list with the available players."),
-            arg!("audiosync", "enable automatic audio synchronization. Read \
-                 the installation guide for more information. Note: this \
-                 feature is still in development."),
-            arg!("audiosync_callibration", "manual tweaking value for \
-                 audiosync in milliseconds."),
-            arg!("mpv_flags", "custom boolean flags used when opening mpv, \
-                 with dashes and separated by spaces."),
-            arg!("client_id", "the client ID for the Spotify Web API. Check \
-                 the guide to learn how to obtain yours."),
-            arg!("client_secret", "the client secret for the Spotify Web \
-                 API. Check the install guide to learn how to obtain yours."),
-        ]).get_matches()
+            arg!(
+                "api",
+                "a",
+                "the source music player used. Read the installation guide \
+                for a list with the available APIs."
+            ),
+            arg!(
+                "player",
+                "p",
+                "the output video player. Read the installation guide for a \
+                list with the available players."
+            ),
+            arg!(
+                "audiosync",
+                "enable automatic audio synchronization. Read the \
+                installation guide for more information. Note: this feature \
+                is still in development."
+            ),
+            arg!(
+                "audiosync_callibration",
+                "manual tweaking value for audiosync in milliseconds."
+            ),
+            arg!(
+                "mpv_flags",
+                "custom boolean flags used when opening mpv, with dashes and \
+                separated by spaces."
+            ),
+            arg!(
+                "client_id",
+                "the client ID for the Spotify Web API. Check the guide to \
+                learn how to obtain yours."
+            ),
+            arg!(
+                "client_secret",
+                "the client secret for the Spotify Web API. Check the \
+                install guide to learn how to obtain yours."
+            ),
+        ])
+        .get_matches()
     }
 }
