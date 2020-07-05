@@ -1,6 +1,7 @@
 pub mod mpv;
 pub mod external;
 
+#[derive(Debug, Display, EnumString)]
 pub enum Player {
     Mpv,
     External,

@@ -6,14 +6,16 @@ license = "GPL-3.0+"
 edition = "2018"
 
 [dependencies]
-pico-args = "0.3.3"
+strum = "0.18.0"
+strum_macros = "0.18.0"
+
 rust-ini = "0.15.3"
 dirs = "3.0.0"
 
 libmpv = "1.0.1"
 rspotify = "0.10.0"
 
-config_macro = { path = "../config_macro" }
+# config_macro = { path = "../config_macro" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 dbus = "0.8.4"

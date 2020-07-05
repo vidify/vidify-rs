@@ -14,5 +14,5 @@
 members = [
     "gui",
     "core",
-    "config_macro"
+    # "config_macro"
 ]

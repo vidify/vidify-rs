@@ -3,6 +3,7 @@ pub mod mpris;
 pub mod spotifyweb;
 pub mod windows;
 
+#[derive(Debug, Display, EnumString)]
 pub enum API {
     #[cfg(any(target_os = "linux", target_os = "bsd"))]
     MPRIS,

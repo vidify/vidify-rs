@@ -1,120 +1,94 @@
 use crate::player::Player;
 use crate::api::API;
 
-use config_macro::Conf;
 use ini::Ini;
 use dirs;
 use std::fs::File;
 
 macro_rules! opt {
-    ($args: tt, $ini: tt, $conf_name: tt, $arg_names: tt, $type: ty, $default: tt) => ({
+    ($ini: tt, $name: tt, $section: tt, $default: tt) => ({
         {
-            // First checking the arguments
-            let mut ret: Option<$type> = None;
-            for name in $arg_names.iter() {
-                match $args.opt_value_from_str::<&str, $type>(name) {
-                    // May fail in some cases.
-                    Ok(val) => match val {
-                        // May not exist.
-                        Some(val) => {
-                            ret = Some(val);
-                            break;
-                        },
-                        None => continue
-                    },
-                    Err(_) => continue
-                }
-            }
-
-            match ret {
-                Some(val) => val,
-                None => {
-                    // Then the config file, falling back to the default value
-                    $ini.get_from_or(Some("Defaults"), $conf_name, $default)
-                    .parse::<$type>()
-                    .expect(concat!("Could not parse the value of '",
-                                    $conf_name, "' in the config file."))
-                }
+            // Then the config file, falling back to the default value
+            match $ini.get_from(Some($section), $name) {
+                Some(val) => {
+                    val.parse()
+                       .expect(concat!("Could not parse the value of '",
+                                       $name, "' in the config file."))
+                },
+                None => $default
             }
         }
     });
 }
 
-#[derive(Debug, Conf)]
+macro_rules! opt_nodef {
+    ($ini: tt, $name: tt, $section: tt) => ({
+        {
+            // Then the config file, falling back to the default value
+            $ini.get_from(Some($section), $name).and_then(|val| {
+                Some(val.parse()
+                        .expect(concat!("Could not parse the value of '",
+                                        $name, "' in the config file.")))
+            })
+        }
+    });
+}
+
+
+// #[derive(Debug, Conf)]
+#[derive(Debug)]
 pub struct Config {
-    #[conf(long = "--debug", help = "debug mode")]
     debug: bool,
-    // config_file: String,
-    // #[conf(short = "-n", long = "--no-lyrics", inverted_arg = true,
-           // help = "no lyrics")]
-    // lyrics: bool,
-    // fullscreen: bool,
+    lyrics: bool,
+    fullscreen: bool,
     // dark_mode: bool,
-    // stay_on_top: bool,
+    stay_on_top: bool,
     // width: u32,
     // height: u32,
-    // api: Option<API>,
-    // player: Option<Player>,
-    // audiosync: bool,
-    // audiosync_calibration: i32,
-    // vlc_args: String,
-    // mpv_flags: String,
-    // #[conf(long = "--client-id", help = "no lyrics")]
-    // client_id: String,
-    // client_secret: String,
-    // redirect_uri: String,
-    // refresh_token: String,
+    api: Option<API>,
+    player: Option<Player>,
+    audiosync: bool,
+    audiosync_calibration: i32,
+    vlc_args: Option<String>,
+    mpv_flags: Option<String>,
+    client_id: Option<String>,
+    client_secret: Option<String>,
+    redirect_uri: String,
+    refresh_token: Option<String>,
 }
 
 impl Config {
     pub fn new() -> Result<Config, Box<dyn std::error::Error>> {
-        let mut args = pico_args::Arguments::from_env();
-
         // Reading the file from the user's config directory.
-        let mut config_file = dirs::config_dir()
+        let mut file = dirs::config_dir()
             .expect("Could not find user config directory");
-        config_file.push("vidify");
-        config_file.push("config.ini");
-        let config_file_str = config_file.to_str()
+        file.push("vidify");
+        file.push("config.ini");
+        let file_str = file.to_str()
             .expect("Invalid UTF-8 characters found in the config path");
 
         // Checking that the config file exists, and creating it otherwise.
-        if !config_file.as_path().exists() {
-            File::create(&config_file).expect("Could not create config file");
-            println!("Created config file at {}", config_file_str);
+        if !file.as_path().exists() {
+            File::create(&file).expect("Could not create config file");
+            println!("Created config file at {}", file_str);
         }
-
-        // TODO: reading a new file is useless
-        // Serializing the config file values. After the previous check,
-        // it must exist.
-        let ini = Ini::load_from_file(config_file_str).unwrap();
-        // TODO: remove, this is for debugging
-        for (sec, prop) in ini.iter() {
-            println!("Section: {:?}", sec);
-            for (k, v) in prop.iter() {
-                println!("{}:{}", k, v);
-            }
-        }
-
-        // Should be automatically generated
-        if args.contains(["-h", "--help"]) {
-            println!("help goes here");
-        }
-
-        if args.contains(["-v", "--version"]) {
-            println!("version goes here");
-        }
+        let ini = Ini::load_from_file(file_str).unwrap();
 
         Ok(Config {
-            debug: opt!(args, ini, "debug", ["--debug", "-d"], bool, "true"),
-            // debug: args
-                // .opt_value_from_str("--debug")?
-                // .unwrap_or(
-                    // ini.get_from_or(Some("Defaults"), "debug", "true")
-                    // .parse::<bool>()
-                    // .expect("Could not parse the value of 'debug' in the \
-                            // config file.")
-                // )
+            debug: opt!(ini, "debug", "Defaults", true),
+            lyrics: opt!(ini, "lyrics", "Defaults", true),
+            fullscreen: opt!(ini, "fullscreen", "Defaults", false),
+            stay_on_top: opt!(ini, "stay_on_top", "Defaults", false),
+            api: opt_nodef!(ini, "api", "Defaults"),
+            player: opt_nodef!(ini, "player", "Defaults"),
+            audiosync: opt!(ini, "audiosync", "Defaults", true),
+            audiosync_calibration: opt!(ini, "audiosync_calibration", "Defaults", 0),
+            vlc_args: opt_nodef!(ini, "vlc_args", "Defaults"),
+            mpv_flags: opt_nodef!(ini, "mpv_flags", "Defaults"),
+            client_id: opt_nodef!(ini, "client_id", "SpotifyWeb"),
+            client_secret: opt_nodef!(ini, "client_secret", "SpotifyWeb"),
+            redirect_uri: opt!(ini, "redirect_uri", "SpotifyWeb", (String::from("http://localhost:8888/callback/"))),
+            refresh_token: opt_nodef!(ini, "refresh_token", "SpotifyWeb"),
         })
     }
 }
