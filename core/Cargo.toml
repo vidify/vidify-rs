@@ -9,6 +9,7 @@ edition = "2018"
 strum = "0.18.0"
 strum_macros = "0.18.0"
 
+clap = { version = "2.33.1", default-features = false, features = [ "color" ] }
 rust-ini = "0.15.3"
 dirs = "3.0.0"
 
