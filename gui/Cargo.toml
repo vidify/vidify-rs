@@ -1,0 +1,9 @@
+[package]
+name = "gui"
+version = "0.1.0"
+authors = ["Mario Ortiz Manero <marioortizmanero@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+gtk = "0.8.1"
+core = { path = "../core" }
