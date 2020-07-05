@@ -7,20 +7,37 @@ use ini::Ini;
 use std::fs::File;
 use std::path::PathBuf;
 
+#[derive(Debug)]
+pub struct Config {
+    debug: bool,
+    lyrics: bool,
+    fullscreen: bool,
+    dark_mode: bool,
+    stay_on_top: bool,
+    api: Option<API>,
+    player: Option<Player>,
+    audiosync: bool,
+    audiosync_calibration: i32,
+    mpv_flags: String,
+    client_id: Option<String>,
+    client_secret: Option<String>,
+    redirect_uri: String,
+    refresh_token: Option<String>,
+}
+
 macro_rules! opt {
     ($args: tt, $ini: tt, $type: ty, $name: expr, $section: expr) => {
         // The arguments have more priority than config file. Once one
-        // of them is obtained, it's parsed.
+        // of them is obtained, it's parsed into the required type.
         $args
             .value_of($name)
             .or_else(|| $ini.get_from(Some($section), $name))
             .and_then(|x| {
-                let err_msg = concat!(
-                    "Could not parse the value of '",
+                Some(x.parse::<$type>().expect(&format!(
+                    "The value for '{}' is invalid in the configuration: '{}'",
                     $name,
-                    "' in the config file."
-                );
-                Some(x.parse::<$type>().expect(err_msg))
+                    x
+                )))
             })
     };
 }
@@ -39,37 +56,20 @@ macro_rules! arg {
     };
 }
 
-// #[derive(Debug, Conf)]
-#[derive(Debug)]
-pub struct Config {
-    debug: bool,
-    lyrics: bool,
-    fullscreen: bool,
-    // dark_mode: bool,
-    stay_on_top: bool,
-    // width: u32,
-    // height: u32,
-    api: Option<API>,
-    player: Option<Player>,
-    audiosync: bool,
-    audiosync_calibration: i32,
-    mpv_flags: String,
-    client_id: Option<String>,
-    client_secret: Option<String>,
-    redirect_uri: String,
-    refresh_token: Option<String>,
-}
-
 impl Config {
-    pub fn new() -> Result<Config, Box<dyn std::error::Error>> {
+    pub fn new() -> Config {
         let a = Config::parse_args();
         let f = Config::parse_config_file(a.value_of("config_file"));
-        Ok(Config {
+        // The arguments have priority over the config file options, and a
+        // default value may be set with `unwrap_or`.
+        Config {
             debug: opt!(a, f, bool, "debug", "Defaults").unwrap_or(true),
             lyrics: opt!(a, f, bool, "no_lyrics", "Defaults")
                 .and_then(|x| Some(!x))
                 .unwrap_or(true),
             fullscreen: opt!(a, f, bool, "fullscreen", "Defaults")
+                .unwrap_or(false),
+            dark_mode: opt!(a, f, bool, "dark_mode", "Defaults")
                 .unwrap_or(false),
             stay_on_top: opt!(a, f, bool, "stay_on_top", "Defaults")
                 .unwrap_or(false),
@@ -92,7 +92,7 @@ impl Config {
             redirect_uri: opt!(a, f, String, "redirect_uri", "SpotifyWeb")
                 .unwrap_or(String::from("")),
             refresh_token: opt!(a, f, String, "refresh_token", "SpotifyWeb"),
-        })
+        }
     }
 
     fn parse_config_file(path_str: Option<&str>) -> Ini {
@@ -132,6 +132,7 @@ impl Config {
             arg!("config_file", "the config file path."),
             arg!("no_lyrics", "n", "do not print lyrics."),
             arg!("fullscreen", "f", "open the app in fullscreen mode."),
+            arg!("dark_mode", "activate the dark mode."),
             arg!("stay_on_top", "the window will stay on top of all apps."),
             arg!(
                 "api",
