@@ -3,6 +3,11 @@ pub mod mpris;
 pub mod spotifyweb;
 pub mod windows;
 
+use crate::config::Config;
+use crate::error::Result;
+
+use strum_macros::{Display, EnumString};
+
 #[derive(Debug, Display, EnumString)]
 pub enum API {
     #[cfg(any(target_os = "linux", target_os = "bsd"))]
@@ -12,13 +17,6 @@ pub enum API {
     #[cfg(target_os = "macos")]
     MacOS,
     SpotifyWeb,
-}
-
-pub struct APIData {
-    description: String,
-    icon: String, // TODO maybe an enum from the resources module
-    connect_msg: String,
-    event_loop_interval: String,
 }
 
 // TODO: Relevant book section:
@@ -34,10 +32,9 @@ pub struct APIData {
 // not considered a good practise.
 pub trait APIBase {
     // Creating the object and initializing it
-    fn new() -> Self
+    fn new(config: &Config) -> Result<Self>
     where
         Self: Sized;
-    fn connect(&mut self);
 
     // Obtaining data about the API
     fn get_player_name(&self) -> &str;
@@ -48,14 +45,16 @@ pub trait APIBase {
     fn event_loop(&mut self);
 }
 
-pub fn init_api(api: API) -> Box<dyn APIBase> {
-    match api {
+pub fn init_api(api: API, config: &Config) -> Result<&dyn APIBase> {
+    let api: &dyn APIBase = match api {
         #[cfg(any(target_os = "linux", target_os = "bsd"))]
-        API::MPRIS => Box::new(mpris::MPRIS::new()),
+        API::MPRIS => &mpris::MPRIS::new(config)?,
         #[cfg(target_os = "windows")]
-        API::Windows => Box::new(windows::Windows::new()),
+        API::Windows => &windows::Windows::new(config)?,
         #[cfg(target_os = "macos")]
-        API::MacOS => Box::new(macos::MacOS::new()),
-        API::SpotifyWeb => Box::new(spotifyweb::SpotifyWeb::new()),
-    }
+        API::MacOS => &macos::MacOS::new(config)?,
+        API::SpotifyWeb => &spotifyweb::SpotifyWeb::new(config)?,
+    };
+
+    Ok(api)
 }

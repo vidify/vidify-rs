@@ -1,10 +1,12 @@
 use crate::player::PlayerBase;
+use crate::config::Config;
+use crate::error::Result;
 
 pub struct External {}
 
 impl PlayerBase for External {
-    fn new() -> External {
-        External {}
+    fn new(config: &Config) -> Result<Self> {
+        Ok(External {})
     }
 
     fn pause(&mut self) {}

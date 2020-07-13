@@ -1,13 +1,13 @@
 use crate::api::APIBase;
+use crate::config::Config;
+use crate::error::Result;
 
 pub struct MacOS {}
 
 impl APIBase for MacOS {
-    fn new() -> Self {
-        MacOS {}
+    fn new(config: &Config) -> Result<Self> {
+        Ok(MacOS {})
     }
-
-    fn connect(&mut self) {}
 
     fn get_player_name(&self) -> &str {
         "test"

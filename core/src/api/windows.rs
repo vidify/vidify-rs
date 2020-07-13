@@ -1,13 +1,13 @@
 use crate::api::APIBase;
+use crate::config::Config;
+use crate::error::Result;
 
 pub struct Windows {}
 
 impl APIBase for Windows {
-    fn new() -> Self {
-        Windows {}
+    fn new(config: &Config) -> Result<Self> {
+        Ok(Windows {})
     }
-
-    fn connect(&mut self) {}
 
     fn get_player_name(&self) -> &str {
         "test"

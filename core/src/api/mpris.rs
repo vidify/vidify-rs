@@ -1,15 +1,15 @@
 use crate::api::APIBase;
+use crate::config::Config;
+use crate::error::Result;
 
-// use dbus;
+use dbus;
 
 pub struct MPRIS {}
 
 impl APIBase for MPRIS {
-    fn new() -> Self {
-        MPRIS {}
+    fn new(config: &Config) -> Result<Self> {
+        Ok(MPRIS {})
     }
-
-    fn connect(&mut self) {}
 
     fn get_player_name(&self) -> &str {
         "test"

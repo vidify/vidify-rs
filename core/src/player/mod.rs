@@ -1,19 +1,19 @@
 pub mod external;
 pub mod mpv;
 
+use crate::config::Config;
+use crate::error::Result;
+
+use strum_macros::{Display, EnumString};
+
 #[derive(Debug, Display, EnumString)]
 pub enum Player {
     Mpv,
     External,
 }
 
-pub struct PlayerData {
-    description: String,
-    icon: String, // TODO maybe an enum from the resources module
-}
-
 pub trait PlayerBase {
-    fn new() -> Self
+    fn new(config: &Config) -> Result<Self>
     where
         Self: Sized;
 

@@ -1,12 +1,14 @@
 use crate::player::PlayerBase;
+use crate::config::Config;
+use crate::error::Result;
 
-// use libmpv;
+use libmpv;
 
 pub struct Mpv {}
 
 impl PlayerBase for Mpv {
-    fn new() -> Mpv {
-        Mpv {}
+    fn new(config: &Config) -> Result<Mpv> {
+        Ok(Mpv {})
     }
 
     fn pause(&mut self) {}
