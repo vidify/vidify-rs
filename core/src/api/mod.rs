@@ -45,15 +45,15 @@ pub trait APIBase {
     fn event_loop(&mut self);
 }
 
-pub fn init_api(api: API, config: &Config) -> Result<&dyn APIBase> {
-    let api: &dyn APIBase = match api {
+pub fn init_api(api: API, config: &Config) -> Result<Box<dyn APIBase>> {
+    let api: Box<dyn APIBase> = match api {
         #[cfg(any(target_os = "linux", target_os = "bsd"))]
-        API::MPRIS => &mpris::MPRIS::new(config)?,
+        API::MPRIS => Box::new(mpris::MPRIS::new(config)?),
         #[cfg(target_os = "windows")]
-        API::Windows => &windows::Windows::new(config)?,
+        API::Windows => Box::new(windows::Windows::new(config)?),
         #[cfg(target_os = "macos")]
-        API::MacOS => &macos::MacOS::new(config)?,
-        API::SpotifyWeb => &spotifyweb::SpotifyWeb::new(config)?,
+        API::MacOS => Box::new(macos::MacOS::new(config)?),
+        API::SpotifyWeb => Box::new(spotifyweb::SpotifyWeb::new(config)?),
     };
 
     Ok(api)
