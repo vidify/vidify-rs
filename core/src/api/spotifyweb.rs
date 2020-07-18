@@ -11,10 +11,12 @@ use crate::error::{Error, Result};
 
 use rspotify::blocking::client::Spotify;
 use rspotify::blocking::oauth2::{SpotifyClientCredentials, SpotifyOAuth};
+use rspotify::model::playing::Playing;
 use rspotify::blocking::util::get_token;
 
 pub struct SpotifyWeb {
     spotify: Spotify,
+    playing: Playing,
 }
 
 impl APIBase for SpotifyWeb {
@@ -26,9 +28,17 @@ impl APIBase for SpotifyWeb {
             .scope("user-read-currently-playing user-read-playback-state")
             .build();
 
-        let oauth = get_token(&mut oauth).ok_or(Error::SpotifyWebAuth)?;
+        // The refresh token is attempted to be reused from previous
+        // sessions.
+        let token = match &config.refresh_token {
+            Some(token) => oauth
+                .refresh_access_token_without_cache(&token)
+                .ok_or(Error::SpotifyWebAuth)?,
+            // TODO: use the GUI for this once it's finished
+            None => get_token(&mut oauth).ok_or(Error::SpotifyWebAuth)?,
+        };
         let creds = SpotifyClientCredentials::default()
-            .token_info(oauth)
+            .token_info(token)
             .build();
 
         let spotify = Spotify::default()
@@ -36,28 +46,46 @@ impl APIBase for SpotifyWeb {
             .build();
 
         Ok(SpotifyWeb {
-            spotify
+            playing: spotify
+                .current_user_playing_track()
+                .map_err(|e| Error::FailedRequest(e.to_string()))?
+                .ok_or(Error::NoTrackPlaying)?,
+            spotify,
         })
     }
 
+    // fn update(&mut self) -> Result<()> {
+        // self.playing = self.refresh_metadata()?;
+    // }
+
+    // fn refresh_metadata(&self) -> Result<Playing> {
+        // self.spotify.current_user_playing_track()?.ok_or(Error::NoTrackPlaying)
+    // }
+
     fn get_player_name(&self) -> &str {
-        "test"
+        "Spotify Web Player"
     }
 
-    fn get_artist(&self) -> &str {
-        "test"
+    fn get_artist(&self) -> Option<&str> {
+        if let Some(item) = &self.playing.item {
+            if let Some(artist) = item.artists.get(0) {
+                return Some(artist.name.as_str());
+            }
+        }
+
+        None
     }
 
-    fn get_title(&self) -> &str {
-        "test"
+    fn get_title(&self) -> Option<&str> {
+        self.playing.item.as_ref().and_then(|item| Some(item.name.as_str()))
     }
 
-    fn get_position(&self) -> u32 {
-        123
+    fn get_position(&self) -> Option<u32> {
+        self.playing.progress_ms
     }
 
     fn is_playing(&self) -> bool {
-        true
+        self.playing.is_playing
     }
 
     fn event_loop(&mut self) {

@@ -15,16 +15,16 @@ impl APIBase for MPRIS {
         "test"
     }
 
-    fn get_artist(&self) -> &str {
-        "test"
+    fn get_artist(&self) -> Option<&str> {
+        None
     }
 
-    fn get_title(&self) -> &str {
-        "test"
+    fn get_title(&self) -> Option<&str> {
+        None
     }
 
-    fn get_position(&self) -> u32 {
-        123
+    fn get_position(&self) -> Option<u32> {
+        None
     }
 
     fn is_playing(&self) -> bool {

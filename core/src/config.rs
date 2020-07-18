@@ -69,7 +69,8 @@ pub struct Config {
     #[conf(
         no_short,
         help = "The redirect URI used for the Spotify Web API",
-        section = "SpotifyWeb"
+        section = "SpotifyWeb",
+        default = "String::from(\"http://localhost:8888/callback/\")"
     )]
     pub redirect_uri: String,
     #[conf(no_short, no_long, section = "SpotifyWeb")]

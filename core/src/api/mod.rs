@@ -8,7 +8,7 @@ use crate::error::Result;
 
 use strum_macros::{Display, EnumString};
 
-#[derive(Debug, Display, EnumString)]
+#[derive(Clone, Debug, Display, EnumString)]
 pub enum API {
     #[cfg(any(target_os = "linux", target_os = "bsd"))]
     MPRIS,
@@ -38,9 +38,9 @@ pub trait APIBase {
 
     // Obtaining data about the API
     fn get_player_name(&self) -> &str;
-    fn get_artist(&self) -> &str;
-    fn get_title(&self) -> &str;
-    fn get_position(&self) -> u32;
+    fn get_artist(&self) -> Option<&str>;
+    fn get_title(&self) -> Option<&str>;
+    fn get_position(&self) -> Option<u32>;
     fn is_playing(&self) -> bool;
     fn event_loop(&mut self);
 }

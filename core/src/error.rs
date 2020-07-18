@@ -1,7 +1,5 @@
 use std::fmt;
 
-use structconf;
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// The different errors that may happen are stored in this enum. These
@@ -10,6 +8,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     ConfigParse(structconf::Error),
+    FailedRequest(String),
+    NoTrackPlaying,
     SpotifyWebAuth,
 }
 
@@ -17,8 +17,10 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Error::*;
         match self {
-            SpotifyWebAuth => write!(f, "Couldn't authenticate Spotify Web API"),
             ConfigParse(err) => write!(f, "Failed parsing the configuration: {}", err.to_string()),
+            FailedRequest(desc) => write!(f, "Failed request: {}", desc),
+            NoTrackPlaying => write!(f, "No track currently playing"),
+            SpotifyWebAuth => write!(f, "Couldn't authenticate Spotify Web API"),
         }
     }
 }

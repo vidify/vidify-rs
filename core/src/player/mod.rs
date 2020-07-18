@@ -6,7 +6,7 @@ use crate::error::Result;
 
 use strum_macros::{Display, EnumString};
 
-#[derive(Debug, Display, EnumString)]
+#[derive(Clone, Debug, Display, EnumString)]
 pub enum Player {
     Mpv,
     External,
