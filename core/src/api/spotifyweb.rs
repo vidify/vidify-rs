@@ -9,10 +9,17 @@ use crate::api::APIBase;
 use crate::config::Config;
 use crate::error::{Error, Result};
 
+use std::thread;
+use std::net::{TcpListener, TcpStream, Shutdown};
+use std::io::{Read, Write};
+use std::sync::mpsc;
+
 use rspotify::blocking::client::Spotify;
-use rspotify::blocking::oauth2::{SpotifyClientCredentials, SpotifyOAuth};
+use rspotify::blocking::oauth2::{
+    SpotifyClientCredentials, SpotifyOAuth, TokenInfo
+};
 use rspotify::model::playing::Playing;
-use rspotify::blocking::util::get_token;
+use log::{info, error};
 
 pub struct SpotifyWeb {
     spotify: Spotify,
@@ -35,7 +42,7 @@ impl APIBase for SpotifyWeb {
                 .refresh_access_token_without_cache(&token)
                 .ok_or(Error::SpotifyWebAuth)?,
             // TODO: use the GUI for this once it's finished
-            None => get_token(&mut oauth).ok_or(Error::SpotifyWebAuth)?,
+            None => get_token(&mut oauth)?,
         };
         let creds = SpotifyClientCredentials::default()
             .token_info(token)
@@ -90,5 +97,106 @@ impl APIBase for SpotifyWeb {
 
     fn event_loop(&mut self) {
         unimplemented!();
+    }
+}
+
+/// A small server will be ran to obtain the token without user interaction,
+/// besides logging in to Spotify in the browser.
+fn get_token(oauth: &mut SpotifyOAuth) -> Result<TokenInfo> {
+    // A thread will open a web server in order to obtain the authentication
+    // code.
+    let (sx, rx) = mpsc::channel();
+    let uri = oauth.redirect_uri.clone();
+    thread::spawn(move || {
+        let uri = to_bind_format(&uri);
+        let listener = TcpListener::bind(uri).unwrap();
+        for stream in listener.incoming() {
+            match stream {
+                Ok(stream) => {
+                    match get_code(stream) {
+                        Ok(code) => {
+                            sx.send(code);
+                            break;
+                        },
+                        Err(err) => {
+                            error!("Error when obtaining the code: {}",
+                                   err.to_string());
+                        }
+                    }
+                }
+                Err(err) => {
+                    error!("Unable to connect: {}", err);
+                }
+            }
+        }
+    });
+
+    // Obtaining the autorization URL to open it and start the authentication
+    // process. The web server thread will send the obtained code and close
+    // itself once it's done.
+    let url = oauth.get_authorize_url(None, Some(true));
+    webbrowser::open(&url).unwrap();
+    let code: String = rx.recv().unwrap();
+    let token = oauth.get_access_token_without_cache(&code).ok_or(Error::SpotifyWebAuth)?;
+
+    Ok(token)
+}
+
+/// Converting a redirect uri like `http://localhost:8888/callback/` into
+/// `localhost:8888` so that it can be used for the TCP listener.
+fn to_bind_format(bind_uri: &str) -> &str {
+    bind_uri
+        .split("/")
+        .nth(2)
+        .expect("Invalid redirect uri, it must follow the regular expression \
+                `.*//(.+:\\d+).*`.")
+}
+
+fn get_code(mut stream: TcpStream) -> Result<String> {
+    // Reading the request for the redirect URI
+    let mut buf = [0u8; 4096];
+    stream.read(&mut buf)?;
+    let req_str = String::from_utf8_lossy(&buf);
+    info!("{}", req_str);
+
+    // Returning some basic HTML
+    let response = b"HTTP/1.1 200 OK
+Content-Type: text/html; charset=UTF-8
+
+<html><body>Authentication complete! Please go back to Vidify</body></html>";
+    stream.write(response)?;
+
+    stream.shutdown(Shutdown::Both);
+    Ok(String::from(""))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn correct_bind_format() {
+        assert_eq!(
+            to_bind_format("http://localhost:0000"),
+            "localhost:0000",
+        );
+        assert_eq!(
+            to_bind_format("https://localhost:1234"),
+            "localhost:1234",
+        );
+        assert_eq!(
+            to_bind_format("http://localhost:8888/callback/"),
+            "localhost:8888",
+        );
+        assert_eq!(
+            to_bind_format("http://localhost:0/callback/"),
+            "localhost:0",
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn incorrect_bind_format() {
+        to_bind_format("localhost:8888");
     }
 }

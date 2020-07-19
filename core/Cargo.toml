@@ -6,12 +6,14 @@ license = "GPL-3.0+"
 edition = "2018"
 
 [dependencies]
+log = "0.4.11"
 strum = "0.18.0"
 strum_macros = "0.18.0"
 structconf = "0.3.2"
 clap = "2.33.1"
 rust-ini = "0.15.3"
 dirs = "3.0.0"
+webbrowser = "0.5.4"
 
 libmpv = "1.0.1"
 rspotify = { version = "0.10.0", features = ["blocking"] }
