@@ -1,7 +1,7 @@
-use crate::data::{Res, ResKind};
 use crate::api::API;
-use crate::player::Player;
+use crate::data::{Res, ResKind};
 use crate::error::Result;
+use crate::player::Player;
 
 use clap::App;
 use structconf::StructConf;

@@ -1,8 +1,8 @@
 use crate::error::Result;
 
-use std::path::PathBuf;
 use std::fs::create_dir;
 use std::ops::Deref;
+use std::path::PathBuf;
 
 use dirs::*;
 
@@ -22,18 +22,24 @@ pub struct Res {
 /// Small wrapper for resource files used in Vidify.
 impl Res {
     pub fn new(kind: ResKind) -> Result<Res> {
-        use ResKind::*;
         use std::io::{Error, ErrorKind};
+        use ResKind::*;
 
         let path = match kind {
             Custom(path) => path,
-            Config(file) => Res::custom(&mut config_dir().ok_or(Error::new(ErrorKind::NotFound, "config dir"))?, &file)?,
-            Data(file) => Res::custom(&mut data_dir().ok_or(Error::new(ErrorKind::NotFound, "data dir"))?, &file)?,
+            Config(file) => Res::custom(
+                &mut config_dir()
+                    .ok_or(Error::new(ErrorKind::NotFound, "config dir"))?,
+                &file,
+            )?,
+            Data(file) => Res::custom(
+                &mut data_dir()
+                    .ok_or(Error::new(ErrorKind::NotFound, "data dir"))?,
+                &file,
+            )?,
         };
 
-        Ok(Res {
-            path,
-        })
+        Ok(Res { path })
     }
 
     fn custom(path: &mut PathBuf, file: &str) -> Result<String> {

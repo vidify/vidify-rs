@@ -1,6 +1,6 @@
-use crate::player::PlayerBase;
 use crate::config::Config;
 use crate::error::Result;
+use crate::player::PlayerBase;
 
 use libmpv;
 

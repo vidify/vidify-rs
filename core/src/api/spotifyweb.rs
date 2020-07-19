@@ -9,17 +9,17 @@ use crate::api::APIBase;
 use crate::config::Config;
 use crate::error::{Error, Result};
 
-use std::thread;
-use std::net::{TcpListener, TcpStream, Shutdown};
 use std::io::{Read, Write};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::mpsc;
+use std::thread;
 
+use log::{error, info};
 use rspotify::blocking::client::Spotify;
 use rspotify::blocking::oauth2::{
-    SpotifyClientCredentials, SpotifyOAuth, TokenInfo
+    SpotifyClientCredentials, SpotifyOAuth, TokenInfo,
 };
 use rspotify::model::playing::Playing;
-use log::{info, error};
 
 pub struct SpotifyWeb {
     spotify: Spotify,
@@ -30,7 +30,9 @@ impl APIBase for SpotifyWeb {
     fn new(config: &Config) -> Result<Self> {
         let mut oauth = SpotifyOAuth::default()
             .client_id(&config.client_id.clone().ok_or(Error::SpotifyWebAuth)?)
-            .client_secret(&config.client_secret.clone().ok_or(Error::SpotifyWebAuth)?)
+            .client_secret(
+                &config.client_secret.clone().ok_or(Error::SpotifyWebAuth)?,
+            )
             .redirect_uri(&config.redirect_uri)
             .scope("user-read-currently-playing user-read-playback-state")
             .build();
@@ -48,9 +50,8 @@ impl APIBase for SpotifyWeb {
             .token_info(token)
             .build();
 
-        let spotify = Spotify::default()
-            .client_credentials_manager(creds)
-            .build();
+        let spotify =
+            Spotify::default().client_credentials_manager(creds).build();
 
         Ok(SpotifyWeb {
             playing: spotify
@@ -62,11 +63,11 @@ impl APIBase for SpotifyWeb {
     }
 
     // fn update(&mut self) -> Result<()> {
-        // self.playing = self.refresh_metadata()?;
+    // self.playing = self.refresh_metadata()?;
     // }
 
     // fn refresh_metadata(&self) -> Result<Playing> {
-        // self.spotify.current_user_playing_track()?.ok_or(Error::NoTrackPlaying)
+    // self.spotify.current_user_playing_track()?.ok_or(Error::NoTrackPlaying)
     // }
 
     fn get_player_name(&self) -> &str {
@@ -84,7 +85,10 @@ impl APIBase for SpotifyWeb {
     }
 
     fn get_title(&self) -> Option<&str> {
-        self.playing.item.as_ref().and_then(|item| Some(item.name.as_str()))
+        self.playing
+            .item
+            .as_ref()
+            .and_then(|item| Some(item.name.as_str()))
     }
 
     fn get_position(&self) -> Option<u32> {
@@ -112,18 +116,18 @@ fn get_token(oauth: &mut SpotifyOAuth) -> Result<TokenInfo> {
         let listener = TcpListener::bind(uri).unwrap();
         for stream in listener.incoming() {
             match stream {
-                Ok(stream) => {
-                    match get_code(stream) {
-                        Ok(code) => {
-                            sx.send(code);
-                            break;
-                        },
-                        Err(err) => {
-                            error!("Error when obtaining the code: {}",
-                                   err.to_string());
-                        }
+                Ok(stream) => match get_code(stream) {
+                    Ok(code) => {
+                        sx.send(code);
+                        break;
                     }
-                }
+                    Err(err) => {
+                        error!(
+                            "Error when obtaining the code: {}",
+                            err.to_string()
+                        );
+                    }
+                },
                 Err(err) => {
                     error!("Unable to connect: {}", err);
                 }
@@ -137,7 +141,9 @@ fn get_token(oauth: &mut SpotifyOAuth) -> Result<TokenInfo> {
     let url = oauth.get_authorize_url(None, Some(true));
     webbrowser::open(&url).unwrap();
     let code: String = rx.recv().unwrap();
-    let token = oauth.get_access_token_without_cache(&code).ok_or(Error::SpotifyWebAuth)?;
+    let token = oauth
+        .get_access_token_without_cache(&code)
+        .ok_or(Error::SpotifyWebAuth)?;
 
     Ok(token)
 }
@@ -145,11 +151,10 @@ fn get_token(oauth: &mut SpotifyOAuth) -> Result<TokenInfo> {
 /// Converting a redirect uri like `http://localhost:8888/callback/` into
 /// `localhost:8888` so that it can be used for the TCP listener.
 fn to_bind_format(bind_uri: &str) -> &str {
-    bind_uri
-        .split("/")
-        .nth(2)
-        .expect("Invalid redirect uri, it must follow the regular expression \
-                `.*//(.+:\\d+).*`.")
+    bind_uri.split("/").nth(2).expect(
+        "Invalid redirect uri, it must follow the regular expression \
+                `.*//(.+:\\d+).*`.",
+    )
 }
 
 fn get_code(mut stream: TcpStream) -> Result<String> {
@@ -176,14 +181,8 @@ mod test {
 
     #[test]
     fn correct_bind_format() {
-        assert_eq!(
-            to_bind_format("http://localhost:0000"),
-            "localhost:0000",
-        );
-        assert_eq!(
-            to_bind_format("https://localhost:1234"),
-            "localhost:1234",
-        );
+        assert_eq!(to_bind_format("http://localhost:0000"), "localhost:0000",);
+        assert_eq!(to_bind_format("https://localhost:1234"), "localhost:1234",);
         assert_eq!(
             to_bind_format("http://localhost:8888/callback/"),
             "localhost:8888",
