@@ -3,6 +3,7 @@ use std::fs::File;
 use core::api::{init_api, API};
 use core::config::init_config;
 use core::data::{Res, ResKind};
+use log::info;
 use simplelog::{
     CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode, WriteLogger,
 };
@@ -32,8 +33,8 @@ fn main() {
         ),
     ])
     .unwrap();
-    log::info!("Initialized the logger");
-    log::info!("Config: {:?}", config);
+    info!("Initialized the logger");
+    info!("Config: {:?}", config);
 
     // Initializing the API
     let api = init_api(config.api.clone().unwrap_or(API::SpotifyWeb), &config);

@@ -118,7 +118,7 @@ fn get_token(oauth: &mut SpotifyOAuth) -> Result<TokenInfo> {
             match stream {
                 Ok(stream) => match get_code(stream) {
                     Ok(code) => {
-                        sx.send(code);
+                        sx.send(code).unwrap();
                         break;
                     }
                     Err(err) => {
@@ -171,7 +171,7 @@ Content-Type: text/html; charset=UTF-8
 <html><body>Authentication complete! Please go back to Vidify</body></html>";
     stream.write(response)?;
 
-    stream.shutdown(Shutdown::Both);
+    stream.shutdown(Shutdown::Both)?;
     Ok(String::from(""))
 }
 
