@@ -15,11 +15,12 @@ pub enum ResKind {
     Data(String),
 }
 
+/// The actual struct with the functionalities required to initialize the
+/// resource's path and access to them.
 pub struct Res {
     pub path: String,
 }
 
-/// Small wrapper for resource files used in Vidify.
 impl Res {
     pub fn new(kind: ResKind) -> Result<Res> {
         use std::io::{Error, ErrorKind};
