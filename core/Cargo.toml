@@ -15,7 +15,7 @@ rust-ini = "0.15.3"
 dirs = "3.0.0"
 webbrowser = "0.5.4"
 
-libmpv = "1.0.1"
+libmpv = "2.0.0"
 rspotify = { version = "0.10.0", features = ["blocking"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
