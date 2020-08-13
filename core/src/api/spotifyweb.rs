@@ -28,7 +28,7 @@ pub struct SpotifyWeb {
 }
 
 impl APIBase for SpotifyWeb {
-    fn new(config: &Config) -> Result<Self> {
+    fn new(config: &Config, sender: super::Sender) -> Result<Self> {
         let mut oauth = SpotifyOAuth::default()
             .client_id(&config.client_id.clone().ok_or(Error::SpotifyWebAuth)?)
             .client_secret(

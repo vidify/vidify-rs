@@ -7,7 +7,7 @@ use std::time;
 pub struct Windows {}
 
 impl APIBase for Windows {
-    fn new(config: &Config) -> Result<Self> {
+    fn new(config: &Config, sender: super::Sender) -> Result<Self> {
         Ok(Windows {})
     }
 

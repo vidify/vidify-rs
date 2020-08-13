@@ -13,10 +13,12 @@ structconf = "0.3.2"
 clap = "2.33.1"
 rust-ini = "0.15.3"
 dirs = "3.0.0"
-webbrowser = "0.5.4"
+relm = "0.20.0"
 
 libmpv = "2.0.0"
+
 rspotify = { version = "0.10.0", features = ["blocking"] }
+webbrowser = "0.5.4"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 mpris = "1.1.2"

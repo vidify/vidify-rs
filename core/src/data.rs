@@ -1,6 +1,6 @@
 use crate::error::Result;
 
-use std::fs::create_dir;
+use std::fs::{create_dir, File};
 use std::ops::Deref;
 use std::path::PathBuf;
 
@@ -10,37 +10,41 @@ use dirs::*;
 /// custom type holds the full path, the rest of them only contain the file
 /// name, which will be appended to a predetermined directory.
 pub enum ResKind {
-    Custom(String),
-    Config(String),
-    Data(String),
+    Custom,
+    Config,
+    Data,
 }
 
 /// The actual struct with the functionalities required to initialize the
 /// resource's path and access to them.
 pub struct Res {
+    pub kind: ResKind,
     pub path: String,
 }
 
 impl Res {
-    pub fn new(kind: ResKind) -> Result<Res> {
+    pub fn new(kind: ResKind, path: &str) -> Result<Res> {
         use std::io::{Error, ErrorKind};
         use ResKind::*;
 
         let path = match kind {
-            Custom(path) => path,
-            Config(file) => Res::custom(
+            Custom => path.to_string(),
+            Config => Res::custom(
                 &mut config_dir()
                     .ok_or(Error::new(ErrorKind::NotFound, "config dir"))?,
-                &file,
+                path,
             )?,
-            Data(file) => Res::custom(
+            Data => Res::custom(
                 &mut data_dir()
                     .ok_or(Error::new(ErrorKind::NotFound, "data dir"))?,
-                &file,
+                path,
             )?,
         };
 
-        Ok(Res { path })
+        Ok(Res {
+            kind,
+            path,
+        })
     }
 
     fn custom(path: &mut PathBuf, file: &str) -> Result<String> {
@@ -53,7 +57,7 @@ impl Res {
         // And then the file
         path.push(file);
         if !path.exists() {
-            std::fs::File::create(&path)?;
+            File::create(&path)?;
         }
 
         Ok(path.to_string_lossy().into_owned())

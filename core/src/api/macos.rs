@@ -7,7 +7,7 @@ use std::time;
 pub struct MacOS {}
 
 impl APIBase for MacOS {
-    fn new(config: &Config) -> Result<Self> {
+    fn new(config: &Config, sender: super::Sender) -> Result<Self> {
         Ok(MacOS {})
     }
 

@@ -7,8 +7,11 @@ use crate::config::Config;
 use crate::error::Result;
 
 use std::time;
+use std::marker::Send;
 
 use strum_macros::{Display, EnumString};
+
+pub type Sender = relm::Sender<APIEvent>;
 
 #[derive(Clone, Debug, Display, EnumString)]
 pub enum API {
@@ -21,6 +24,16 @@ pub enum API {
     SpotifyWeb,
 }
 
+/// The possible events that may be notified from an API.
+#[derive(Clone, Debug)]
+pub enum APIEvent {
+    Playing,
+    Paused,
+    Stopped,
+    Seeked(time::Duration),
+    TrackChanged(String),
+}
+
 /// The abstract base class used for any API in this app. The API is defined
 /// as an object that can provide information about the status of the player.
 pub trait APIBase {
@@ -29,7 +42,7 @@ pub trait APIBase {
     /// An `Error::ConnectionFailed` exception should be raised if the attempt
     /// to connect didn't succeed. For example, if the player isn't open or
     /// if no songs are playing at that moment.
-    fn new(config: &Config) -> Result<Self>
+    fn new(config: &Config, sender: Sender) -> Result<Self>
     where
         Self: Sized;
 
@@ -67,15 +80,22 @@ pub trait APIBase {
     fn event_loop(&mut self);
 }
 
-pub fn init_api(api: API, config: &Config) -> Result<Box<dyn APIBase>> {
+/// Establishes the relation between the enumeration of the available APIs
+/// and their implementations, instantiating the selected one.
+pub fn init_api(
+        api: API,
+        config: &Config,
+        sender: Sender,
+    ) -> Result<Box<dyn APIBase>>
+{
     let api: Box<dyn APIBase> = match api {
         #[cfg(any(target_os = "linux", target_os = "bsd"))]
-        API::MPRIS => Box::new(mpris::MPRIS::new(config)?),
+        API::MPRIS => Box::new(mpris::MPRIS::new(config, sender)?),
         #[cfg(target_os = "windows")]
-        API::Windows => Box::new(windows::Windows::new(config)?),
+        API::Windows => Box::new(windows::Windows::new(config, sender)?),
         #[cfg(target_os = "macos")]
-        API::MacOS => Box::new(macos::MacOS::new(config)?),
-        API::SpotifyWeb => Box::new(spotifyweb::SpotifyWeb::new(config)?),
+        API::MacOS => Box::new(macos::MacOS::new(config, sender)?),
+        API::SpotifyWeb => Box::new(spotifyweb::SpotifyWeb::new(config, sender)?),
     };
 
     Ok(api)

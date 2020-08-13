@@ -1,14 +1,25 @@
 use crate::config::Config;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::player::PlayerBase;
 
-use libmpv;
+impl From<libmpv::Error> for Error {
+    fn from(err: libmpv::Error) -> Self {
+        Error::PlayerInit(err.to_string())
+    }
+}
 
-pub struct Mpv {}
+pub struct Mpv {
+    mpv: libmpv::Mpv,
+}
 
 impl PlayerBase for Mpv {
-    fn new(config: &Config) -> Result<Mpv> {
-        Ok(Mpv {})
+    fn new(config: &Config, wid: u64) -> Result<Mpv> {
+        let mpv = libmpv::Mpv::new()?;
+        mpv.add_property("wid", wid as isize);
+
+        Ok(Mpv {
+            mpv
+        })
     }
 
     fn pause(&mut self) {}

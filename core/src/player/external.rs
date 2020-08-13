@@ -5,7 +5,7 @@ use crate::player::PlayerBase;
 pub struct External {}
 
 impl PlayerBase for External {
-    fn new(config: &Config) -> Result<Self> {
+    fn new(config: &Config, wid: u64) -> Result<Self> {
         Ok(External {})
     }
 

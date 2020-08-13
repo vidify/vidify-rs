@@ -113,8 +113,8 @@ pub fn init_config() -> Result<Config> {
         .author(clap::crate_authors!());
     let args = Config::parse_args(app);
     let path = match args.value_of("config_path") {
-        Some(path) => Res::new(ResKind::Custom(path.to_string()))?,
-        None => Res::new(ResKind::Config(String::from("config.ini")))?,
+        Some(path) => Res::new(ResKind::Custom, path)?,
+        None => Res::new(ResKind::Config, "config.ini")?,
     };
 
     let conf = Config::parse_file(&args, &path)?;

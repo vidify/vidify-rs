@@ -12,7 +12,8 @@ pub enum Error {
     FailedRequest(String),
     NoTrackPlaying,
     SpotifyWebAuth,
-    FailedConnection(String),
+    FailedConnection(String), // TODO: should be APIInit
+    PlayerInit(String),
 }
 
 impl fmt::Display for Error {
@@ -29,6 +30,7 @@ impl fmt::Display for Error {
                 write!(f, "Couldn't authenticate Spotify Web API")
             }
             FailedConnection(e) => write!(f, "Failed to connect: {}", e),
+            PlayerInit(e) => write!(f, "Failed to initialize player: {}", e),
         }
     }
 }
