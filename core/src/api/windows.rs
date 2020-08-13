@@ -2,6 +2,8 @@ use crate::api::APIBase;
 use crate::config::Config;
 use crate::error::Result;
 
+use std::time;
+
 pub struct Windows {}
 
 impl APIBase for Windows {
@@ -9,19 +11,19 @@ impl APIBase for Windows {
         Ok(Windows {})
     }
 
-    fn get_player_name(&self) -> &str {
-        "test"
+    fn player_name(&self) -> String {
+        String::from("Windows Player")
     }
 
-    fn get_artist(&self) -> Option<&str> {
+    fn artist(&self) -> Option<String> {
         None
     }
 
-    fn get_title(&self) -> Option<&str> {
+    fn title(&self) -> Option<String> {
         None
     }
 
-    fn get_position(&self) -> Option<u32> {
+    fn position(&self) -> Option<time::Duration> {
         None
     }
 

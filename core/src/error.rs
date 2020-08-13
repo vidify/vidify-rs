@@ -12,23 +12,23 @@ pub enum Error {
     FailedRequest(String),
     NoTrackPlaying,
     SpotifyWebAuth,
+    FailedConnection(String),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Error::*;
         match self {
-            ConfigParse(err) => write!(
-                f,
-                "Failed parsing the configuration: {}",
-                err.to_string()
-            ),
-            IO(err) => write!(f, "IO error: {}", err.to_string()),
-            FailedRequest(desc) => write!(f, "Failed request: {}", desc),
+            ConfigParse(e) => {
+                write!(f, "Failed parsing the configuration: {}", e)
+            }
+            IO(e) => write!(f, "IO error: {}", e),
+            FailedRequest(e) => write!(f, "Failed request: {}", e),
             NoTrackPlaying => write!(f, "No track currently playing"),
             SpotifyWebAuth => {
                 write!(f, "Couldn't authenticate Spotify Web API")
             }
+            FailedConnection(e) => write!(f, "Failed to connect: {}", e),
         }
     }
 }

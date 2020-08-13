@@ -41,11 +41,11 @@ fn main() {
     match api {
         Ok(api) => {
             println!("Player data:");
-            println!("    Player name: {}", (*api).get_player_name());
-            println!("    Artist: {:?}", (*api).get_artist());
-            println!("    Title: {:?}", (*api).get_title());
-            println!("    Position: {:?}", (*api).get_position());
-            println!("    Is playing?: {}", (*api).is_playing());
+            println!("    Player name: {}", api.player_name());
+            println!("    Artist: {:?}", api.artist());
+            println!("    Title: {:?}", api.title());
+            println!("    Position: {:?}", api.position());
+            println!("    Is playing?: {}", api.is_playing());
         }
         Err(err) => eprintln!("Error: {}", err.to_string()),
     }

@@ -19,7 +19,7 @@ pub trait PlayerBase {
 
     fn pause(&mut self);
     fn is_paused(&self) -> bool;
-    fn get_position(&self) -> u32;
+    fn position(&self) -> u32;
     fn seek(&mut self);
     fn start_video(&mut self);
 }

@@ -12,12 +12,16 @@ impl PlayerBase for Mpv {
     }
 
     fn pause(&mut self) {}
+
     fn is_paused(&self) -> bool {
         true
     }
-    fn get_position(&self) -> u32 {
+
+    fn position(&self) -> u32 {
         123
     }
+
     fn seek(&mut self) {}
+
     fn start_video(&mut self) {}
 }

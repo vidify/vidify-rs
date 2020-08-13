@@ -19,4 +19,4 @@ libmpv = "2.0.0"
 rspotify = { version = "0.10.0", features = ["blocking"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-dbus = "0.8.4"
+mpris = "1.1.2"

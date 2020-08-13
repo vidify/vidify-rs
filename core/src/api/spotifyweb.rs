@@ -9,10 +9,11 @@ use crate::api::APIBase;
 use crate::config::Config;
 use crate::error::{Error, Result};
 
-use std::io::{Read, Write};
-use std::net::{Shutdown, TcpListener, TcpStream};
+use std::io::{Write, BufRead, BufReader};
+use std::net::{TcpListener, TcpStream};
 use std::sync::mpsc;
 use std::thread;
+use std::time;
 
 use log::{error, info};
 use rspotify::blocking::client::Spotify;
@@ -46,13 +47,17 @@ impl APIBase for SpotifyWeb {
             // TODO: use the GUI for this once it's finished
             None => get_token(&mut oauth)?,
         };
+
+        // Once the access token is ready, the Spotify API can be initialized.
         let creds = SpotifyClientCredentials::default()
             .token_info(token)
             .build();
-
         let spotify =
             Spotify::default().client_credentials_manager(creds).build();
 
+        // A first request for the playing track will also be made in order
+        // to fully initialize the internal data, and to make sure the API
+        // is correctly authenticated.
         Ok(SpotifyWeb {
             playing: spotify
                 .current_user_playing_track()
@@ -70,29 +75,27 @@ impl APIBase for SpotifyWeb {
     // self.spotify.current_user_playing_track()?.ok_or(Error::NoTrackPlaying)
     // }
 
-    fn get_player_name(&self) -> &str {
-        "Spotify Web Player"
+    // There's only a single possible player name.
+    fn player_name(&self) -> String {
+        String::from("Spotify Web Player")
     }
 
-    fn get_artist(&self) -> Option<&str> {
+    fn artist(&self) -> Option<String> {
         if let Some(item) = &self.playing.item {
             if let Some(artist) = item.artists.get(0) {
-                return Some(artist.name.as_str());
+                return Some(artist.name.clone());
             }
         }
 
         None
     }
 
-    fn get_title(&self) -> Option<&str> {
-        self.playing
-            .item
-            .as_ref()
-            .and_then(|item| Some(item.name.as_str()))
+    fn title(&self) -> Option<String> {
+        Some(self.playing.item.as_ref()?.name.clone())
     }
 
-    fn get_position(&self) -> Option<u32> {
-        self.playing.progress_ms
+    fn position(&self) -> Option<time::Duration> {
+        Some(time::Duration::from_millis(self.playing.progress_ms? as u64))
     }
 
     fn is_playing(&self) -> bool {
@@ -104,11 +107,11 @@ impl APIBase for SpotifyWeb {
     }
 }
 
-/// A small server will be ran to obtain the token without user interaction,
-/// besides logging in to Spotify in the browser.
+
+/// A small server will be ran to obtain the access token without user
+/// interaction, besides logging in to Spotify in the browser.
 fn get_token(oauth: &mut SpotifyOAuth) -> Result<TokenInfo> {
-    // A thread will open a web server in order to obtain the authentication
-    // code.
+    info!("Obtaining access token with web server");
     let (sx, rx) = mpsc::channel();
     let uri = oauth.redirect_uri.clone();
     thread::spawn(move || {
@@ -118,27 +121,24 @@ fn get_token(oauth: &mut SpotifyOAuth) -> Result<TokenInfo> {
             match stream {
                 Ok(stream) => match get_code(stream) {
                     Ok(code) => {
+                        // Once the code is obtained successfully, it's
+                        // sent to the main function, and the connection is
+                        // closed.
+                        info!("Obtained code: {}", code);
                         sx.send(code).unwrap();
                         break;
                     }
-                    Err(err) => {
-                        error!(
-                            "Error when obtaining the code: {}",
-                            err.to_string()
-                        );
-                    }
+                    Err(e) => error!("Error when obtaining the code: {}", e)
                 },
-                Err(err) => {
-                    error!("Unable to connect: {}", err);
-                }
+                Err(e) => error!("Unable to connect: {}", e)
             }
         }
     });
 
-    // Obtaining the autorization URL to open it and start the authentication
-    // process. The web server thread will send the obtained code and close
-    // itself once it's done.
+    // The authorization URL will start a new connection with the web server
+    // once it's opened by the user.
     let url = oauth.get_authorize_url(None, Some(true));
+    // TODO: shouldn't unwrap.
     webbrowser::open(&url).unwrap();
     let code: String = rx.recv().unwrap();
     let token = oauth
@@ -158,21 +158,43 @@ fn to_bind_format(bind_uri: &str) -> &str {
 }
 
 fn get_code(mut stream: TcpStream) -> Result<String> {
-    // Reading the request for the redirect URI
-    let mut buf = [0u8; 4096];
-    stream.read(&mut buf)?;
-    let req_str = String::from_utf8_lossy(&buf);
-    info!("{}", req_str);
+    // Reading the request for the redirect URI. The first line of the HTTP
+    // response should contain the GET data with the code.
+    let mut data = BufReader::new(stream.try_clone().unwrap());
+    let mut req_data = String::new();
+    data.read_line(&mut req_data)?;
+    info!("Request data into String: {}", req_data);
 
-    // Returning some basic HTML
-    let response = b"HTTP/1.1 200 OK
-Content-Type: text/html; charset=UTF-8
+    // Indicating the user that the authentication was completed successfully.
+    write!(
+        &mut stream,
+        "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\n\n{}",
+        include_str!("spotifyweb_response.html")
+    )?;
 
-<html><body>Authentication complete! Please go back to Vidify</body></html>";
-    stream.write(response)?;
+    Ok(extract_code(&req_data)?)
+}
 
-    stream.shutdown(Shutdown::Both)?;
-    Ok(String::from(""))
+/// Obtaining the code from the HTTP request format without the need for a
+/// regular expression nor a more advanced HTTP library:
+///
+/// ```
+/// GET /callback/?code=AQBM...XGN&state=sXAJJhszLFKzcPDf HTTP/1.1
+/// ```
+///
+/// In the previous example, the extracted code will be "AQBM...XGN".
+fn extract_code(data: &str) -> Result<String> {
+    let code = data.split("?code=") // Starting prefix
+        .nth(1)
+        .ok_or(Error::SpotifyWebAuth)?
+        .split_whitespace() // May include a space before `HTTP/X.X`
+        .next()
+        .ok_or(Error::SpotifyWebAuth)?
+        .split("&") // May include `&state=4V8JSmSUqWyn9ah8`
+        .next()
+        .ok_or(Error::SpotifyWebAuth)?;
+
+    Ok(String::from(code))
 }
 
 #[cfg(test)]
